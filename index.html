@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Sports Edge — Projection Lab</title>
+<style>
+:root{--bg:#0b1220;--panel:#121c2d;--panel2:#172338;--line:#26364e;--text:#eef4ff;--muted:#9aabc4;--green:#5de0a0;--blue:#7eb8ff;--amber:#ffd166}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#14233a 0,#0b1220 48%);color:var(--text);font:15px/1.45 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.wrap{max-width:1180px;margin:auto;padding:22px 16px 60px}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:24px}.brand{display:flex;align-items:center;gap:12px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#57d6a0,#6aaeff);display:grid;place-items:center;color:#081322;font-weight:900;font-size:20px}.brand h1{font-size:21px;margin:0}.brand p{color:var(--muted);font-size:12px;margin:2px 0}.pill{border:1px solid #315944;color:var(--green);padding:7px 11px;border-radius:999px;font-size:12px}
+.hero{margin-bottom:20px}.eyebrow{color:var(--green);font-weight:750;text-transform:uppercase;letter-spacing:.12em;font-size:11px}.hero h2{font-size:clamp(28px,5vw,42px);line-height:1.08;letter-spacing:-.04em;margin:8px 0}.hero p{color:var(--muted);max-width:700px;margin:10px 0 0}
+.controls,.card{background:rgba(18,28,45,.94);border:1px solid var(--line);border-radius:18px}.controls{padding:16px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.field select,.field input{width:100%;padding:11px 12px;border:1px solid #34445d;background:#0c1524;color:var(--text);border-radius:10px;font:inherit;min-width:0}
+button{cursor:pointer;border:0;border-radius:10px;padding:11px 14px;background:var(--green);color:#071a13;font-weight:800;font:inherit}.buttonrow{display:flex;gap:8px;align-items:end}.buttonrow button{width:100%}.ghost{background:#24344b;color:var(--text);border:1px solid #3a4d68}
+.grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}.card{padding:18px;min-width:0}.cardhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:14px}.card h3{margin:0;font-size:16px}.sub{color:var(--muted);font-size:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}.stat{background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:13px}.stat .label{color:var(--muted);font-size:11px}.stat .num{font-size:25px;font-weight:800;margin-top:4px;letter-spacing:-.03em}.stat .note{font-size:11px;color:var(--muted)}
+.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:540px}th,td{text-align:left;padding:11px 8px;border-bottom:1px solid var(--line);font-size:13px}th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}td strong{display:block}td small{color:var(--muted)}.tag{display:inline-block;border-radius:7px;padding:4px 7px;font-size:11px;font-weight:800;background:#183a31;color:var(--green)}.tag.neutral{background:#2a3446;color:#c7d2e3}.tag.warn{background:#433722;color:var(--amber)}
+.list{display:grid;gap:10px}.match{background:var(--panel2);border:1px solid var(--line);padding:13px;border-radius:12px}.matchtop{display:flex;justify-content:space-between;gap:8px}.match p{color:var(--muted);font-size:12px;margin:6px 0 0}.bar{height:6px;background:#2c3b50;border-radius:9px;overflow:hidden;margin-top:10px}.bar span{height:100%;display:block;background:var(--green)}
+.notice{border:1px solid #67552d;background:#2c2619;color:#f5dfaa;padding:13px 15px;border-radius:12px;font-size:12px;margin-top:16px}.bottom{margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px}.explain{color:var(--muted);font-size:13px}.explain li{margin:7px 0}.empty{color:var(--muted);padding:16px;text-align:center}.foot{color:#8192aa;font-size:11px;text-align:center;margin-top:26px}
+@media(max-width:800px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.grid,.bottom{grid-template-columns:1fr}.stats{grid-template-columns:repeat(3,minmax(0,1fr))}.stat .num{font-size:21px}}
+@media(max-width:420px){.wrap{padding:16px 11px 40px}.controls{padding:12px;gap:10px}.card{padding:13px}.stats{gap:6px}.stat{padding:9px}.stat .num{font-size:19px}.stat .label{font-size:10px}}
+</style></head>
+<body><main class="wrap">
+<header class="top"><div class="brand"><div class="logo">SE</div><div><h1>Sports Edge</h1><p>Projection lab · personal dashboard</p></div></div><div class="pill">● MODEL DEMO · NOT LIVE ODDS</div></header>
+<section class="hero"><div class="eyebrow">Your matchup research desk</div><h2>Find the number.<br>Understand the matchup.</h2><p>Compare an estimated stat projection with a line, inspect the assumptions, and keep the difference between a model estimate and a real betting edge clear.</p></section>
+<section class="controls" aria-label="Projection filters">
+<div class="field"><label for="sport">SPORT</label><select id="sport"><option>NFL</option><option>MLB</option><option>NBA</option><option>NHL</option></select></div>
+<div class="field"><label for="market">MARKET</label><select id="market"><option>Player props</option><option>Game lines</option></select></div>
+<div class="field"><label for="metric">STAT / LINE TYPE</label><select id="metric"></select></div>
+<div class="field"><label for="line">YOUR LINE</label><input id="line" type="number" step="0.5" value="64.5"></div>
+<div class="field"><label for="player">PLAYER / TEAM</label><input id="player" value="Sample Player" placeholder="Enter name"></div>
+<div class="field"><label for="average">BASELINE AVERAGE</label><input id="average" type="number" step="0.1" value="68"></div>
+<div class="field"><label for="recent">RECENT AVERAGE</label><input id="recent" type="number" step="0.1" value="72"></div>
+<div class="buttonrow"><button id="calc">Calculate projection</button></div>
+</section>
+<section class="stats">
+<div class="stat"><div class="label">MODEL PROJECTION</div><div class="num" id="projection">70.0</div><div class="note" id="unit">yards / game</div></div>
+<div class="stat"><div class="label">DIFFERENCE VS LINE</div><div class="num" id="edge">+5.5</div><div class="note">Projection minus line</div></div>
+<div class="stat"><div class="label">DIRECTION</div><div class="num" id="direction" style="font-size:20px;color:var(--green)">OVER lean</div><div class="note" id="confidence">Low confidence · demo</div></div>
+</section>
+<div class="grid">
+<section class="card"><div class="cardhead"><div><h3>Projection board</h3><div class="sub">Illustrative rows · not current players or lines</div></div><span class="tag neutral">Sample data</span></div>
+<div class="tablewrap"><table><thead><tr><th>Selection</th><th>Line</th><th>Projection</th><th>Model lean</th></tr></thead><tbody id="board"></tbody></table></div>
+<div class="notice">This starter version does not connect to live stats, injuries, schedules, sportsbook odds, or player availability. The sample values are for demonstrating the interface only.</div></section>
+<section class="card"><div class="cardhead"><div><h3>Matchup checklist</h3><div class="sub">Factors to research before trusting a projection</div></div></div>
+<div class="list" id="checklist"></div></section>
+</div>
+<div class="bottom">
+<section class="card"><h3>How this estimate works</h3><ul class="explain"><li><b>Baseline:</b> season or career average entered by you.</li><li><b>Recent form:</b> recent average entered by you, weighted 40% in this demo.</li><li><b>Projection:</b> baseline × 60% + recent average × 40%.</li><li><b>Difference:</b> projection minus the entered line. A positive value is an over lean; negative is an under lean.</li><li><b>Not a probability:</b> the size of the difference is not the chance of winning. This demo does not estimate calibrated probabilities or account for sportsbook vig.</li></ul></section>
+<section class="card"><h3>Data & model status</h3><p class="explain">The dashboard is a working front-end prototype. Accurate automated projections require a reliable data pipeline, historical game logs, opponent/context features, line snapshots, and backtesting. Free sources may not provide licensed sportsbook odds or complete prop markets.</p><p class="explain">Next build step: connect a server-side data adapter and save daily line snapshots so predictions can be tested against closing lines and actual outcomes.</p><button class="ghost" id="export" style="width:100%">Export current estimate as CSV</button></section>
+</div>
+<div class="foot">Sports Edge · Research tool, not financial advice. No model can guarantee results. Only use legal, age-appropriate services.</div>
+</main>
+<script>
+const metrics={
+ NFL:{"Player props":["Passing yards","Passing TDs","Rushing yards","Receiving yards","Receptions","Completions"],"Game lines":["Spread","Moneyline","Total points"]},
+ MLB:{"Player props":["Strikeouts","Hits","Total bases","Runs + RBI","Pitcher outs","Home runs"],"Game lines":["Run line","Moneyline","Total runs"]},
+ NBA:{"Player props":["Points","Rebounds","Assists","3-pointers made","PRA","Steals + blocks"],"Game lines":["Spread","Moneyline","Total points"]},
+ NHL:{"Player props":["Shots on goal","Points","Goals","Assists","Saves"],"Game lines":["Puck line","Moneyline","Total goals"]}
+};
+const $=id=>document.getElementById(id);
+function fillMetrics(){let s=$('sport').value,m=$('market').value,sel=$('metric');sel.innerHTML='';metrics[s][m].forEach(x=>{let o=document.createElement('option');o.textContent=x;sel.appendChild(o)});$('unit').textContent=sel.value+' · estimate'}
+function calculate(){let base=Number($('average').value),recent=Number($('recent').value),line=Number($('line').value);if(!Number.isFinite(base)||!Number.isFinite(recent)||!Number.isFinite(line))return;let p=base*.6+recent*.4,d=p-line;$('projection').textContent=p.toFixed(1);$('edge').textContent=(d>0?'+':'')+d.toFixed(1);$('direction').textContent=Math.abs(d)<.05?'At the line':d>0?'OVER lean':'UNDER lean';$('direction').style.color=Math.abs(d)<.05?'var(--amber)':d>0?'var(--green)':'var(--blue)';$('confidence').textContent='No calibrated probability · demo';$('unit').textContent=$('metric').value+' · illustrative';renderBoard();renderChecklist()}
+function renderBoard(){let s=$('sport').value,m=$('market').value,metric=$('metric').value;let p=Number($('average').value)*.6+Number($('recent').value)*.4,line=Number($('line').value),d=p-line;let rows=[[$('player').value||'Your selection',line,p,d],['Sample comparison A',48.5,51.2,2.7],['Sample comparison B',5.5,4.8,-.7]];$('board').innerHTML=rows.map((r,i)=>`<tr><td><strong>${esc(r[0])}</strong><small>${i===0?esc(s+' · '+metric):'Illustrative sample'}</small></td><td>${r[1].toFixed(1)}</td><td>${r[2].toFixed(1)}</td><td><span class="tag ${Math.abs(r[3])<1?'warn':''}">${Math.abs(r[3])<.05?'At line':r[3]>0?'Over lean':'Under lean'}</span></td></tr>`).join('')}
+function renderChecklist(){let items=$('sport').value==='NFL'?['Expected snaps, routes, and target share','Opponent coverage / pressure matchup','Injuries, weather, game script']: $('sport').value==='MLB'?['Confirmed lineup and batting order','Pitcher handedness, pitch mix, park/weather','Bullpen status and projected plate appearances']: $('sport').value==='NBA'?['Expected minutes and injury/rotation news','Opponent pace and positional defense','Rest, travel, blowout risk']:['Expected ice time and line assignment','Opponent shots/chances allowed','Starting goalie, special teams, rest'];$('checklist').innerHTML=items.map((x,i)=>`<div class="match"><div class="matchtop"><strong>${i+1}. ${x}</strong><span class="tag neutral">Check</span></div><p>Not automatically verified in this demo. Confirm from current, reliable sources.</p></div>`).join('')}
+function esc(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('sport').addEventListener('change',fillMetrics);$('market').addEventListener('change',fillMetrics);$('metric').addEventListener('change',()=>{$('unit').textContent=$('metric').value+' · estimate'});$('calc').addEventListener('click',calculate);
+$('export').addEventListener('click',()=>{let csv=[['sport','market','selection','stat','line','baseline_average','recent_average','projection','difference','model_direction','status'],[$('sport').value,$('market').value,$('player').value,$('metric').value,$('line').value,$('average').value,$('recent').value,$('projection').textContent,$('edge').textContent,$('direction').textContent,'demo only']].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\\n');let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='sports-edge-estimate.csv';a.click();URL.revokeObjectURL(a.href)});
+fillMetrics();renderBoard();renderChecklist();calculate();
+</script></body></html>
