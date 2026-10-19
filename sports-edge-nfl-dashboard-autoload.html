@@ -1,0 +1,221 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sports Edge — NFL Dashboard</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{font:16px system-ui;background:#0b1220;color:#eaf1ff;margin:0}main{max-width:940px;margin:auto;padding:22px}header{display:flex;justify-content:space-between;align-items:center;gap:10px}a{color:#65dfae}.card{background:#142137;border:1px solid #30445f;border-radius:16px;padding:20px;margin:16px 0}h1{margin-bottom:0}p,.muted{color:#adbed5}label{display:block;font-size:12px;margin:14px 0 5px;color:#b9c9dc}input,select,button{font:inherit;padding:11px;border-radius:9px}input,select{width:100%;background:#0b1628;color:white;border:1px solid #425675}button.secondary{background:#33475f;color:#eaf1ff}button:disabled{opacity:.45;cursor:not-allowed}button{background:#5de0a0;border:0;color:#071923;font-weight:750;cursor:pointer;margin-top:16px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#0d192a;padding:14px;border-radius:12px}.stat b{display:block;font-size:26px}.stat span{font-size:12px;color:#afc0d7}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:440px}td,th{padding:9px;border-bottom:1px solid #34435a;text-align:left}#status{color:#f6d28e}small{color:#b3c4d9}@media(max-width:560px){.stats{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}</style></head><body><main><header><strong>🏈 SPORTS EDGE / NFL</strong><a href="./index.html">← Main dashboard</a></header><h1>Sports Edge NFL Dashboard</h1><p>One NFL home for DraftKings lines, automatic opponents, explainable position-aware projections and a local prediction log. Research only; no guaranteed picks.</p><section class="card"><h2>Load historical data</h2><p>NFL weekly stats for 2024, 2025 and 2026 load automatically when available. You can also upload a weekly player-stats CSV downloaded from the public <a href="https://github.com/nflverse/nflverse-data/releases/tag/stats_player" target="_blank" rel="noopener">nflverse player_stats releases</a>. Manual upload replaces the automatically loaded dataset for this visit. Data stays in your browser; no API key is required.</p><label for="csv">CSV FILE</label><input id="csv" type="file" accept=".csv,text/csv"><p id="status">Checking for automatically updated NFL stats…</p><button id="reload" type="button">Refresh saved stats</button></section><section class="card"><h2>Player projection</h2><p class="muted">Provisional model choice from your historical tests: QB/RB/TE use position-specific volume × efficiency; WR receiving yards use the season-average baseline. Other markets use the position model where available. These choices are not yet validated on untouched future games.</p><div class="grid"><div><label for="player">PLAYER</label><input id="player" list="names" placeholder="Select a player"><datalist id="names"></datalist></div><div><label for="stat">STAT</label><select id="stat"><option value="passing_yards">Passing yards</option><option value="passing_tds">Passing TDs</option><option value="rushing_yards">Rushing yards</option><option value="receiving_yards">Receiving yards</option><option value="receptions">Receptions</option><option value="targets">Targets</option><option value="carries">Carries</option><option value="completions">Completions</option></select></div><div><label for="season">SEASON</label><select id="season"><option value="">All available</option></select></div><div><label for="line">DRAFTKINGS PROP LINE (EDITABLE)</label><input id="line" type="number" step="0.5" placeholder="e.g. 64.5"></div></div><div class="grid"><div><label for="opponent">NEXT OPPONENT (AUTO-SELECTED WHEN AVAILABLE)</label><select id="opponent"><option value="">No opponent adjustment</option></select></div><div><label for="strength">MATCHUP ADJUSTMENT STRENGTH</label><select id="strength"><option value="0">Off (baseline only)</option><option value="0.25" selected>Conservative (25%)</option><option value="0.5">Moderate (50%)</option></select></div></div><p id="oddsStatus" class="muted" aria-live="polite">Loading saved DraftKings lines…</p><p id="propStatus" class="muted" aria-live="polite">Select a player and stat to match an available DraftKings prop.</p><p id="scheduleStatus" class="muted" aria-live="polite">Checking upcoming NFL schedule…</p><button id="calculate">Calculate projection</button><p><small>Baseline combines historical production with position-specific volume and efficiency estimates when enough data is available. Matchup factor compares the selected defense’s per-game allowed stat against the league average for the same season. Only part of that factor is applied, with a cap of ±15%. This is an experimental heuristic, not a calibrated probability. Injuries, weather and expected playing time are not modeled. Model selection is based on exploratory historical tests and needs future holdout validation.</small></p><div id="matchup" class="card" aria-live="polite"><h3>Opponent matchup breakdown</h3><p>Select an opponent and calculate to see the matchup adjustment.</p></div><div id="accuracyDetails" class="card" aria-live="polite"><h3>Position-specific projection breakdown</h3><p>Calculate a projection to see the breakdown.</p></div><p id="modelChoice" class="muted">Choose a player to see the model selected.</p><div class="stats"><div class="stat"><span>PROJECTION</span><b id="projection">—</b></div><div class="stat"><span>DIFFERENCE VS LINE</span><b id="difference">—</b></div><div class="stat"><span>MODEL LEAN</span><b id="lean">—</b></div></div><button id="savePick" type="button" disabled>Save this prediction to my log</button><p class="muted"><small>Predictions are saved in this browser only. Save them before kickoff. Results are not automatically graded; you can enter actual outcomes later. Clearing browser data or using another device will not preserve them unless you export the log.</small></p></section><section class="card"><h2>Prediction log</h2><p class="muted">Timestamped snapshots for forward testing. No API key is stored in the browser.</p><div class="grid"><div><button type="button" id="exportPicks">Export prediction log (CSV)</button></div><div><button type="button" id="clearPicks" class="secondary">Clear saved predictions</button></div></div><p id="logStatus" class="muted"></p><div class="scroll"><table><thead><tr><th>Saved (ET)</th><th>Player / market</th><th>Opponent</th><th>Model</th><th>Projection</th><th>DK line</th><th>Actual (edit)</th><th>Error</th><th></th></tr></thead><tbody id="pickRows"></tbody></table></div></section><section class="card"><h2>DraftKings NFL game lines</h2><p class="muted">These are saved market prices, not Sports Edge game predictions. Check the update timestamp before using them.</p><div class="scroll"><table><thead><tr><th>Matchup</th><th>Kickoff (ET)</th><th>Moneyline</th><th>Spread</th><th>Total</th></tr></thead><tbody id="oddsGames"><tr><td colspan="5">Loading DraftKings odds…</td></tr></tbody></table></div></section><section class="card"><h2>Recent games</h2><div class="scroll"><table><thead><tr><th>Season</th><th>Week</th><th>Team</th><th>Opponent</th><th>Stat</th></tr></thead><tbody id="games"><tr><td colspan="5">Load a CSV and calculate.</td></tr></tbody></table></div></section><p class="muted"><small>Sports Edge research prototype. Historical stats do not imply future results. Verify line, player availability, and source freshness independently.</small></p></main><script>
+const $=x=>document.getElementById(x);let data=[];let schedule=[];let manualOpponent=false;let oddsData=null;let lineEdited=false;const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+function csvRows(s){let out=[],row=[],v='',quoted=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(quoted&&s[i+1]==='"'){v+='"';i++}else quoted=!quoted}else if(c===','&&!quoted){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x!==''))out.push(row);row=[];v=''}else v+=c}if(v||row.length){row.push(v);out.push(row)}return out}
+function pname(r){return r.player_display_name||r.player_name||''}
+async function loadCSVText(content,source){
+ let rows=csvRows(content);if(!rows.length)throw Error('CSV is empty');
+ let headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));
+ let parsed=rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))).filter(r=>pname(r));
+ if(!parsed.length||!headers.includes('week')||!headers.includes('passing_yards'))throw Error('Not a weekly nflverse player stats CSV');
+ data=parsed;
+ let names=[...new Set(data.map(pname))].sort();
+ $('names').innerHTML=names.map(x=>'<option value="'+esc(x)+'"></option>').join('');
+ let seasons=[...new Set(data.map(r=>r.season).filter(Boolean))].sort().reverse();
+ $('season').innerHTML='<option value="">All available</option>'+seasons.map(x=>'<option>'+esc(x)+'</option>').join('');
+ $('season').value=seasons[0]||''; // Default projections to the newest season, not a mixture of years.
+ let teams=[...new Set(data.map(r=>r.opponent_team).filter(Boolean))].sort();
+ $('opponent').innerHTML='<option value="">No opponent adjustment</option>'+teams.map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');
+ $('status').textContent='Loaded '+data.length.toLocaleString()+' weekly rows for '+names.length+' players ('+source+').';manualOpponent=false;chooseNextOpponent();syncProp();
+}
+$('csv').addEventListener('change',async e=>{
+ const f=e.target.files[0];if(!f)return;
+ $('status').textContent='Reading your CSV…';
+ try{if(f.size>30000000)throw Error('File over 30 MB; use a single-season CSV.');await loadCSVText(await f.text(),'manual upload')}
+ catch(err){$('status').textContent='Could not read CSV: '+err.message}
+});
+async function loadAutomatic(){
+ $('status').textContent='Loading 2024, 2025 and 2026 NFL stats…';
+ const years=[2024,2025,2026];const results=await Promise.all(years.map(async year=>{
+  const urls=year===2026?['./data/nfl-2026.csv']:['./data/nfl-'+year+'.csv','https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_'+year+'.csv'];
+  for(const url of urls){try{const res=await fetch(url+(url.includes('?')?'&':'?')+'refresh='+Date.now(),{cache:'no-store'});if(!res.ok)continue;const content=await res.text();if(content.trimStart().startsWith('<'))continue;return {year,content}}catch(e){/* try next source */}}
+  return {year,content:null};
+ }));
+ const available=results.filter(x=>x.content);
+ if(!available.length){$('status').textContent='Automatic stats unavailable. Upload a CSV above or check your GitHub data files.';return}
+ // Merge CSVs by column name to support schema changes between nflverse seasons.
+ const headers=new Set();const parsed=[];const seen=new Set();
+ for(const item of available){const lines=csvRows(item.content);if(!lines.length)continue;const keys=lines.shift().map(x=>x.trim().replace(/^\uFEFF/,''));keys.forEach(k=>headers.add(k));
+  for(const cells of lines){const obj=Object.fromEntries(keys.map((k,i)=>[k,cells[i]??'']));if(!pname(obj))continue;
+   const id=[obj.season||item.year,obj.week,obj.player_id||obj.player_display_name||obj.player_name,obj.recent_team||obj.team,obj.season_type].join('|');if(seen.has(id))continue;seen.add(id);parsed.push(obj);
+  }
+ }
+ if(!parsed.length){$('status').textContent='No valid player rows found in downloaded seasons.';return}
+ const keys=[...headers];const quote=v=>'"'+String(v??'').replace(/"/g,'""')+'"';
+ const merged=[keys.map(quote).join(','),...parsed.map(r=>keys.map(k=>quote(r[k])).join(','))].join('\n');
+ await loadCSVText(merged,'automatic '+available.map(x=>x.year).join(', ')+' seasons');
+ const missing=results.filter(x=>!x.content).map(x=>x.year);
+ if(missing.length)$('status').textContent+=' Could not fetch '+missing.join(', ')+'. For reliable loading, upload their CSVs to the repository data folder.';
+}
+$('reload').addEventListener('click',()=>{loadAutomatic();loadSchedule()});
+loadAutomatic();
+async function loadSchedule(){
+ try{
+  const response=await fetch('./data/nfl-schedule.csv?refresh='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw Error('schedule file not published yet');
+  const rows=csvRows(await response.text());const headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));
+  if(!['season','game_type','gameday','home_team','away_team'].every(x=>headers.includes(x)))throw Error('unexpected schedule format');
+  schedule=rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))).filter(r=>r.game_type==='REG');
+  chooseNextOpponent();
+ }catch(err){$('scheduleStatus').textContent='Automatic opponent unavailable ('+err.message+'). Select an opponent manually.'}
+}
+function chooseNextOpponent(){
+ if(manualOpponent)return;
+ const name=$('player').value.trim().toLowerCase();
+ if(!name){$('scheduleStatus').textContent=schedule.length?'Choose a player to identify the next opponent.':'Waiting for NFL schedule data…';return}
+ const rows=data.filter(r=>pname(r).toLowerCase()===name&&r.season_type!=='POST').sort((a,b)=>Number(b.season)-Number(a.season)||Number(b.week)-Number(a.week));
+ if(!rows.length){$('scheduleStatus').textContent='Player not found in loaded stats.';return}
+ const team=rows[0].recent_team||rows[0].team;
+ if(!team){$('scheduleStatus').textContent='No team listed for this player; choose the opponent manually.';return}
+ const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ const games=schedule.filter(g=>g.season===rows[0].season&&g.gameday>=today&&(g.home_team===team||g.away_team===team)).sort((a,b)=>a.gameday.localeCompare(b.gameday)||Number(a.week)-Number(b.week));
+ if(!games.length){$('scheduleStatus').textContent=schedule.length?'No remaining scheduled regular-season game found for '+team+'. Select manually.':'Schedule not loaded yet; opponent selection is manual.';return}
+ const game=games[0];const opp=game.home_team===team?game.away_team:game.home_team;
+ if(![...$('opponent').options].some(o=>o.value===opp)){$('scheduleStatus').textContent='Upcoming opponent '+opp+' is missing from stats; select manually.';return}
+ $('opponent').value=opp;
+ $('scheduleStatus').textContent='Auto matchup: '+team+' vs '+opp+' · '+game.gameday+' · Week '+game.week+(game.gameday===today?' (game-day status not verified)':'')+'. You can override the defense manually.';
+}
+$('player').addEventListener('change',()=>{manualOpponent=false;lineEdited=false;$('line').value='';chooseNextOpponent();syncProp()});
+$('player').addEventListener('blur',()=>{if(!manualOpponent)chooseNextOpponent()});
+$('season').addEventListener('change',()=>{manualOpponent=false;chooseNextOpponent();syncProp()});
+$('opponent').addEventListener('change',()=>{syncProp();manualOpponent=true;$('scheduleStatus').textContent='Manual opponent selection: '+($('opponent').value||'none')+'. Change player to auto-select again.'});
+loadSchedule();
+$('stat').addEventListener('change',()=>{lineEdited=false;$('line').value='';syncProp()});$('line').addEventListener('input',()=>{lineEdited=true;$('propStatus').textContent='Manual line override. DraftKings data remains available when you change the player or stat.'});
+// Aggregate each defense's allowed stat by week. QB passing and receiving/rushing
+// production are summed across opponents, not averaged across individual players.
+function defensiveGames(stat,season){
+ const grouped=new Map();
+ for(const r of data){
+  if(r.season!==season||r.season_type==='POST'||!r.opponent_team||!(r.recent_team||r.team)||r[stat]===''||!Number.isFinite(Number(r[stat])))continue;
+  const key=[r.season,r.week,r.opponent_team,(r.recent_team||r.team)].join('|');
+  if(!grouped.has(key))grouped.set(key,{def:r.opponent_team,week:Number(r.week),value:0,contributors:0});
+  const g=grouped.get(key);g.value+=Number(r[stat]);g.contributors++;
+ }
+ return [...grouped.values()];
+}
+// Experimental position-specific volume × efficiency forecasts.
+// Each input is calculated from completed games; no same-game information is used.
+function meanOf(arr){return arr.reduce((a,b)=>a+b,0)/arr.length}
+function smoothMetric(rows,key){
+ const vals=rows.map(r=>Number(r[key])).filter(Number.isFinite);
+ if(!vals.length)return null;
+ const all=meanOf(vals),last=meanOf(vals.slice(-4));
+ return .7*all+.3*last;
+}
+function positionForecast(rows,stat){
+ const pos=String(rows[rows.length-1]?.position||'').toUpperCase();
+ let volume,output,description;
+ const rate=(numerator,denominator)=>{
+   const n=rows.reduce((s,r)=>s+(Number(r[numerator])||0),0);
+   const d=rows.reduce((s,r)=>s+(Number(r[denominator])||0),0);
+   return d>0?n/d:null;
+ };
+ if(pos==='QB' && ['passing_yards','passing_tds','completions'].includes(stat)){
+   volume=smoothMetric(rows,'attempts');
+   const efficiency=stat==='passing_yards'?rate('passing_yards','attempts'):stat==='passing_tds'?rate('passing_tds','attempts'):rate('completions','attempts');
+   output=volume*efficiency;description='Expected pass attempts × historical '+(stat==='passing_yards'?'yards per attempt':stat==='passing_tds'?'TDs per attempt':'completion rate');
+ }else if(pos==='RB' && ['rushing_yards','rushing_tds'].includes(stat)){
+   volume=smoothMetric(rows,'carries');
+   const efficiency=rate(stat,'carries');output=volume*efficiency;
+   description='Expected carries × historical '+(stat==='rushing_yards'?'yards per carry':'rushing TDs per carry');
+ }else if(['WR','TE','RB'].includes(pos) && ['receiving_yards','receptions','receiving_tds'].includes(stat)){
+   volume=smoothMetric(rows,'targets');
+   const efficiency=rate(stat,'targets');output=volume*efficiency;
+   description='Expected targets × historical '+(stat==='receiving_yards'?'yards per target':stat==='receptions'?'catch rate':'receiving TDs per target');
+ }else if(stat==='rushing_yards' && pos==='QB'){
+   volume=smoothMetric(rows,'carries');const efficiency=rate('rushing_yards','carries');output=volume*efficiency;
+   description='Expected QB carries × historical yards per carry';
+ }else return null;
+ if(!Number.isFinite(volume)||volume<=0||!Number.isFinite(output)||output<0)return null;
+ return {value:output,volume,description,pos};
+}
+$('calculate').addEventListener('click',()=>{
+ let player=$('player').value.trim().toLowerCase(),season=$('season').value,stat=$('stat').value;
+ let r=data.filter(x=>pname(x).toLowerCase()===player&&(!season||x.season===season)&&x.season_type!=='POST'&&x[stat]!==''&&Number.isFinite(Number(x[stat]))).sort((a,b)=>Number(a.season)-Number(b.season)||Number(a.week)-Number(b.week));
+ if(!r.length){$('status').textContent='No matching player games. Check the player name, season, and loaded file.';return}
+ // When all seasons selected, use only the most recent available season.
+ const latestSeason=r[r.length-1].season;r=r.filter(x=>x.season===latestSeason);
+ let values=r.map(x=>Number(x[stat]));let seasonAvg=values.reduce((a,b)=>a+b,0)/values.length;
+ let recent=values.slice(-5),recentAvg=recent.reduce((a,b)=>a+b,0)/recent.length;
+ // Weight recent performance more strongly without letting short streaks dominate.
+ const last3=values.slice(-3),last3Avg=last3.reduce((a,b)=>a+b,0)/last3.length;
+ const sampleWeight=Math.min(1,values.length/6);
+ const formBaseline=.45*seasonAvg+.35*recentAvg+.20*last3Avg;
+ const historicalBaseline=seasonAvg*(1-sampleWeight)+formBaseline*sampleWeight;
+ const component=positionForecast(r,stat);
+ // Limited influence until at least 8 prior games. This is a heuristic, not a validated improvement.
+ const componentWeight=component?Math.min(.45,r.length/8*.45):0;
+ const pos=String(r[r.length-1]?.position||'').toUpperCase();
+ const seasonOnly=pos==='WR'&&stat==='receiving_yards';
+ const modelName=seasonOnly?'Season average (WR receiving)':component?'Position-specific ('+pos+')':'Historical baseline (unsupported market)';
+ let baseline=seasonOnly?seasonAvg:historicalBaseline*(1-componentWeight)+(component?.value||0)*componentWeight,projection=baseline;
+ $('modelChoice').textContent='Selected model: '+modelName+(seasonOnly?' — based on the lower historical error for WR receiving yards.':' — experimental; not independently validated.');
+ const variance=values.reduce((a,v)=>a+(v-seasonAvg)**2,0)/values.length;
+ const sd=Math.sqrt(variance),cv=seasonAvg>0?sd/seasonAvg:null;
+ const details=$('accuracyDetails');
+ const consistency=cv===null?'Unavailable':cv<.35?'High':cv<.7?'Moderate':'Low';
+ const history=values.length>=8?'Good':values.length>=4?'Limited':'Very limited';
+ details.innerHTML='<h3>Projection breakdown — '+esc(modelName)+'</h3><p>Position: <b>'+esc(component?.pos||r[r.length-1]?.position||'Unknown')+'</b> · Season average: <b>'+seasonAvg.toFixed(1)+'</b> · Last 5: <b>'+recentAvg.toFixed(1)+'</b> · Last 3: <b>'+last3Avg.toFixed(1)+'</b></p><p>Historical baseline: <b>'+historicalBaseline.toFixed(1)+'</b></p>'+(component?'<p>Usage × efficiency estimate: <b>'+component.value.toFixed(1)+'</b> · Expected volume: <b>'+component.volume.toFixed(1)+'</b> · Component weight: <b>'+(componentWeight*100).toFixed(0)+'%</b></p><small>'+esc(component.description)+'</small>':'<p>No reliable position-specific component for this stat; using historical baseline.</p>')+'<p>Combined baseline: <b>'+baseline.toFixed(1)+'</b> · Standard deviation: <b>'+sd.toFixed(1)+'</b> · Consistency: <b>'+consistency+'</b> · Sample: <b>'+history+' ('+values.length+' games)</b></p><small>Experimental formula; no demonstrated accuracy gain. Efficiency is calculated from historical totals, and volume from season and last-four averages. Injury, depth-chart changes, weather, and snap counts are not modeled. Historical consistency is not betting confidence.</small>';
+ const opp=$('opponent').value,strength=Number($('strength').value),box=$('matchup');
+ if(opp){
+  const all=defensiveGames(stat,latestSeason);
+  const defensive=all.filter(x=>x.def===opp);
+  // League comparison uses defense-game totals, not individual player rows.
+  if(defensive.length>=3&&all.length){
+   const mean=a=>a.reduce((s,x)=>s+x.value,0)/a.length;
+   const allowed=mean(defensive),league=mean(all);
+   if(league>0){
+    const ratio=allowed/league,adjust=Math.max(-.15,Math.min(.15,(ratio-1)*strength));
+    projection=baseline*(1+adjust);
+    box.innerHTML='<h3>Opponent matchup breakdown</h3><p>Defense: <b>'+esc(opp)+'</b> · Season: '+esc(latestSeason)+'</p><p>Allowed per game: <b>'+allowed.toFixed(1)+'</b> · League defense-game average: <b>'+league.toFixed(1)+'</b> · Sample: <b>'+defensive.length+' games</b></p><p>Baseline: <b>'+baseline.toFixed(1)+'</b> · Experimental adjustment: <b>'+(adjust>=0?'+':'')+(adjust*100).toFixed(1)+'%</b> · Adjusted: <b>'+projection.toFixed(1)+'</b></p><small>All opposing players at the selected position/stat are combined by game. This is a rough matchup proxy, not a position-specific or opponent-quality-adjusted forecast. Upcoming opponent is inferred from the published schedule when available; verify player team and game status.</small>';
+   }else box.innerHTML='<h3>Opponent matchup breakdown</h3><p>Insufficient league comparison data; baseline unchanged.</p>';
+  }else box.innerHTML='<h3>Opponent matchup breakdown</h3><p>Only '+defensive.length+' usable games for '+esc(opp)+'. Need at least 3; baseline unchanged.</p>';
+ }else box.innerHTML='<h3>Opponent matchup breakdown</h3><p>No opponent selected; baseline unchanged.</p>';
+ let line=$('line').value.trim();let d=line===''?null:projection-Number(line);
+ $('projection').textContent=projection.toFixed(1);$('difference').textContent=d===null?'—':(d>=0?'+':'')+d.toFixed(1);
+ $('lean').textContent=d===null?'Enter line':Math.abs(d)<.05?'At line':d>0?'Over':'Under';
+ $('games').innerHTML=r.slice(-10).reverse().map(x=>'<tr><td>'+esc(x.season)+'</td><td>'+esc(x.week)+'</td><td>'+esc(x.recent_team||x.team)+'</td><td>'+esc(x.opponent_team||x.opponent)+'</td><td>'+Number(x[stat]).toFixed(1)+'</td></tr>').join('');
+ $('status').textContent='Projection calculated from '+r.length+' available games. Historical matchup adjustment is experimental.';
+ window.currentPick={player:$('player').value.trim(),position:pos,stat,season:latestSeason,opponent:opp,model:modelName,projection:Number(projection.toFixed(2)),line:line===''?null:Number(line),savedOddsAt:oddsData?.fetched_at||null};
+ $('savePick').disabled=false;
+});
+
+
+// DraftKings-only odds snapshot. The key remains private in GitHub Actions.
+const TEAM_NAMES={'ARI':'Arizona Cardinals','ATL':'Atlanta Falcons','BAL':'Baltimore Ravens','BUF':'Buffalo Bills','CAR':'Carolina Panthers','CHI':'Chicago Bears','CIN':'Cincinnati Bengals','CLE':'Cleveland Browns','DAL':'Dallas Cowboys','DEN':'Denver Broncos','DET':'Detroit Lions','GB':'Green Bay Packers','HOU':'Houston Texans','IND':'Indianapolis Colts','JAX':'Jacksonville Jaguars','KC':'Kansas City Chiefs','LA':'Los Angeles Rams','LAC':'Los Angeles Chargers','LV':'Las Vegas Raiders','MIA':'Miami Dolphins','MIN':'Minnesota Vikings','NE':'New England Patriots','NO':'New Orleans Saints','NYG':'New York Giants','NYJ':'New York Jets','PHI':'Philadelphia Eagles','PIT':'Pittsburgh Steelers','SEA':'Seattle Seahawks','SF':'San Francisco 49ers','TB':'Tampa Bay Buccaneers','TEN':'Tennessee Titans','WAS':'Washington Commanders'};
+const MARKET={'passing_yards':'player_pass_yds','rushing_yards':'player_rush_yds','receiving_yards':'player_reception_yds','receptions':'player_receptions','passing_tds':'player_pass_tds','completions':'player_pass_completions'};
+function fmtOdds(n){return Number.isFinite(Number(n))?(Number(n)>0?'+':'')+Number(n):'—'}
+function dkMarkets(game){return (game?.bookmakers||[]).find(b=>b.key==='draftkings')?.markets||[]}
+function dkMarket(game,key){return dkMarkets(game).find(m=>m.key===key)}
+function gameText(g){const h=g.home_team,a=g.away_team;const h2h=dkMarket(g,'h2h')?.outcomes||[],sp=dkMarket(g,'spreads')?.outcomes||[],tot=dkMarket(g,'totals')?.outcomes||[];
+ const ml=h2h.map(x=>esc(x.name)+' '+fmtOdds(x.price)).join(' / ')||'—';
+ const spread=sp.map(x=>esc(x.name)+' '+(Number(x.point)>0?'+':'')+x.point+' ('+fmtOdds(x.price)+')').join(' / ')||'—';
+ const total=tot.map(x=>esc(x.name)+' '+x.point+' ('+fmtOdds(x.price)+')').join(' / ')||'—';
+ const when=g.commence_time?new Date(g.commence_time).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—';
+ return '<tr><td>'+esc(a)+' @ '+esc(h)+'</td><td>'+esc(when)+'</td><td>'+ml+'</td><td>'+spread+'</td><td>'+total+'</td></tr>'}
+async function loadOdds(){try{const res=await fetch('./draftkings-odds.json?refresh='+Date.now(),{cache:'no-store'});if(!res.ok)throw Error('HTTP '+res.status);const d=await res.json();if(d.bookmaker!=='draftkings'||!Array.isArray(d.games))throw Error('unexpected odds file format');oddsData=d;
+ const updated=new Date(d.fetched_at);$('oddsStatus').textContent='DraftKings odds snapshot: '+(Number.isNaN(updated.getTime())?'unknown time':updated.toLocaleString('en-US',{timeZone:'America/New_York',dateStyle:'medium',timeStyle:'short'})+' ET')+'. Data may change; rerun your GitHub workflow to refresh.';
+ $('oddsGames').innerHTML=d.games.length?d.games.map(gameText).join(''):'<tr><td colspan="5">No upcoming games in saved odds.</td></tr>';syncProp();
+ }catch(e){$('oddsStatus').textContent='DraftKings odds not available: '+e.message;$('oddsGames').innerHTML='<tr><td colspan="5">No saved odds loaded.</td></tr>'}}
+function syncProp(){if(!oddsData)return;const name=$('player').value.trim().toLowerCase(),market=MARKET[$('stat').value];if(!name){$('propStatus').textContent='Choose a player to find their DraftKings prop.';return}if(!market){$('propStatus').textContent='No matching DraftKings prop market is requested for this stat. Enter a line manually.';return}
+ const opp=TEAM_NAMES[$('opponent').value];let matches=[];
+ for(const event of oddsData.player_props||[]){if(opp&&event.home_team!==opp&&event.away_team!==opp)continue;
+  for(const m of dkMarkets(event).filter(m=>m.key===market))for(const o of m.outcomes||[]){if(String(o.description||'').trim().toLowerCase()===name&&Number.isFinite(Number(o.point)))matches.push({event,o});}}
+ if(!matches.length){if(!lineEdited)$('line').value='';$('propStatus').textContent='No saved DraftKings '+market+' prop for '+$('player').value+'. The updater currently checks only two games and three prop markets. Enter a line manually.';return}
+ const over=matches.find(x=>String(x.o.name).toLowerCase()==='over')||matches[0];$('line').value=over.o.point;lineEdited=false;
+ const under=matches.find(x=>x.event.id===over.event.id&&x.o.point===over.o.point&&String(x.o.name).toLowerCase()==='under');
+ $('propStatus').textContent='DraftKings: '+$('player').value+' '+over.o.point+' yards/units · Over '+fmtOdds(over.o.price)+(under?' / Under '+fmtOdds(under.o.price):'')+' · '+over.event.away_team+' @ '+over.event.home_team+'. Saved snapshot, not live.';
+}
+// Local, append-only prediction snapshots; manually enter actuals after games.
+const PICK_KEY='sports-edge-predictions-v1';
+function getPicks(){try{const a=JSON.parse(localStorage.getItem(PICK_KEY)||'[]');return Array.isArray(a)?a:[]}catch{return []}}
+function setPicks(a){localStorage.setItem(PICK_KEY,JSON.stringify(a));renderPicks()}
+function renderPicks(){const a=getPicks();$('logStatus').textContent=a.length+' saved predictions in this browser. Predictions are not automatically graded.';
+ $('pickRows').innerHTML=a.length?a.map((p,i)=>'<tr><td>'+esc(new Date(p.savedAt).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))+'</td><td>'+esc(p.player)+'<br><small>'+esc(p.stat)+'</small></td><td>'+esc(p.opponent||'—')+'</td><td>'+esc(p.model)+'</td><td>'+Number(p.projection).toFixed(1)+'</td><td>'+(p.line===null?'—':Number(p.line).toFixed(1))+'</td><td><input aria-label="Actual result for '+esc(p.player)+'" type="number" step="0.1" style="width:95px" data-actual="'+i+'" value="'+(p.actual===null?'':Number(p.actual))+'"></td><td>'+(p.actual===null?'—':Math.abs(p.actual-p.projection).toFixed(1))+'</td><td><button type="button" class="secondary" data-remove="'+i+'">Delete</button></td></tr>').join(''):'<tr><td colspan="9">No predictions saved yet.</td></tr>';
+ $('pickRows').querySelectorAll('[data-actual]').forEach(el=>el.addEventListener('change',()=>{const x=getPicks(),i=Number(el.dataset.actual);if(!x[i])return;x[i].actual=el.value.trim()===''?null:Number(el.value);setPicks(x)}));
+ $('pickRows').querySelectorAll('[data-remove]').forEach(el=>el.addEventListener('click',()=>{const x=getPicks();x.splice(Number(el.dataset.remove),1);setPicks(x)}));}
+$('savePick').addEventListener('click',()=>{if(!window.currentPick)return;const a=getPicks();a.push({...window.currentPick,savedAt:new Date().toISOString(),actual:null});setPicks(a);$('logStatus').textContent='Prediction saved in this browser. '+a.length+' total.'});
+$('clearPicks').addEventListener('click',()=>{if(confirm('Permanently clear this browser’s saved predictions?'))setPicks([])});
+$('exportPicks').addEventListener('click',()=>{const a=getPicks();if(!a.length){$('logStatus').textContent='No saved predictions to export.';return}const fields=['savedAt','player','position','stat','season','opponent','model','projection','line','savedOddsAt','actual'];const csv=[fields.join(','),...a.map(p=>fields.map(k=>'"'+String(p[k]??'').replaceAll('"','""')+'"').join(','))].join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='sports-edge-prediction-log.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
+renderPicks();
+loadOdds();
+</script></body></html>
