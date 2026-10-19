@@ -1,77 +1,35 @@
-name: Update DraftKings NFL Odds
+
+name: Update NBA Stats
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '30 11 * * *'
 
 permissions:
   contents: write
 
 jobs:
-  update-odds:
+  update-nba:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Download DraftKings odds
-        env:
-          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download NBA game logs
+        run: python update_nba_stats.py
+
+      - name: Save NBA statistics
         run: |
-          python3 - <<'PY'
-          import json, os, urllib.parse, urllib.request
-          from datetime import datetime, timezone
-          from pathlib import Path
-
-          key = os.environ.get('ODDS_API_KEY')
-          if not key:
-              raise SystemExit('ODDS_API_KEY secret is missing')
-          base = 'https://api.the-odds-api.com/v4/sports/americanfootball_nfl'
-
-          def get(path, params):
-              query = urllib.parse.urlencode({**params, 'apiKey': key})
-              request = urllib.request.Request(base + path + '?' + query)
-              try:
-                  with urllib.request.urlopen(request, timeout=35) as response:
-                      remaining = response.headers.get('x-requests-remaining', 'unknown')
-                      print('API credits remaining:', remaining)
-                      return json.load(response)
-              except urllib.error.HTTPError as error:
-                  # Do not print URLs, since they contain the API key.
-                  message = error.read().decode('utf-8', errors='replace')[:500]
-                  raise SystemExit(f'Odds API HTTP {error.code}: {message}')
-
-          games = get('/odds/', {
-              'regions': 'us', 'bookmakers': 'draftkings',
-              'markets': 'h2h,spreads,totals', 'oddsFormat': 'american'
-          })
-          # Props are event-specific and use extra credits. Start with only
-          # the next two games and three player markets per game.
-          props = []
-          for game in sorted(games, key=lambda g: g['commence_time'])[:2]:
-              event = get('/events/' + game['id'] + '/odds', {
-                  'regions': 'us', 'bookmakers': 'draftkings',
-                  'markets': 'player_pass_yds,player_rush_yds,player_reception_yds',
-                  'oddsFormat': 'american'
-              })
-              props.append(event)
-
-          output = {
-              'source': 'The Odds API', 'bookmaker': 'draftkings',
-              'fetched_at': datetime.now(timezone.utc).isoformat(),
-              'games': games, 'player_props': props
-          }
-          Path('draftkings-odds.json').write_text(json.dumps(output, indent=2) + '\n')
-          print('Saved', len(games), 'games and', len(props), 'prop-event responses')
-          PY
-
-      - name: Commit updated odds data
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add draftkings-odds.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/nba-game-logs.csv
           if ! git diff --cached --quiet; then
-            git commit -m "Update DraftKings NFL odds"
+            git commit -m 'Update NBA player statistics'
             git push
-          else
-            echo "Odds unchanged"
           fi
