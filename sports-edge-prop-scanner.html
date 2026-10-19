@@ -1,0 +1,118 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Sports Edge — DraftKings Prop Scanner</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#091221;color:#e9f2ff;font:15px system-ui,-apple-system,sans-serif}main{max-width:1200px;margin:auto;padding:24px 16px 70px}h1{font-size:clamp(28px,4vw,42px);margin:12px 0 8px}h2{margin:0 0 12px;font-size:21px}p{line-height:1.5;color:#b8c8dc}.top{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}a{color:#64e2ad}.panel{border:1px solid #304764;background:#142238;border-radius:18px;padding:20px;margin:18px 0}.controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}label{display:block;color:#b7c8dc;font-size:12px;margin-bottom:6px}select,input{background:#0b1729;color:#e9f2ff;border:1px solid #46607e;border-radius:9px;padding:11px;width:100%;font:inherit}button{background:#61dfa7;color:#071923;border:0;border-radius:10px;padding:12px 16px;font:inherit;font-weight:750;cursor:pointer}button:disabled{opacity:.6;cursor:wait}.secondary{background:#334962;color:#f0f5ff}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.stat{background:#0b182b;padding:16px;border-radius:13px}.stat b{display:block;font-size:26px}.stat span{font-size:12px;color:#a9bfd8}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:950px}th,td{padding:12px 10px;text-align:left;border-bottom:1px solid #31445e;vertical-align:middle}th{color:#b4c6de;font-size:12px}td small{display:block;color:#9db2ca;margin-top:4px}.positive{color:#60dfa9}.negative{color:#f4a59d}.muted{color:#adbed5}.notice{background:#243147;border-radius:12px;padding:13px 16px;color:#cbd7e7}.pill{display:inline-block;border:1px solid #51677d;border-radius:99px;padding:3px 9px;font-size:12px;color:#d4e2f3}.status{min-height:24px}.foot{font-size:13px}@media(max-width:800px){.controls{grid-template-columns:repeat(2,minmax(0,1fr))}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:460px){.controls{grid-template-columns:1fr}.panel{padding:15px}.stat b{font-size:21px}}
+</style></head><body><main><div class="top"><strong>🏈 SPORTS EDGE / NFL PROP SCANNER</strong><a href="./sports-edge-nfl-dashboard-autoload.html">← NFL dashboard</a></div><h1>DraftKings player prop scanner</h1><p>See which available DraftKings player-prop lines differ most from Sports Edge projections. Sorted by the <b>size of the projection gap</b>, not by a proven betting advantage.</p>
+<section class="panel"><h2>Data status</h2><p id="status" class="status">Loading 2024–2026 stats and saved DraftKings odds…</p><p id="freshness" class="muted"></p><div class="notice">Odds are a saved snapshot, not live. Only player props included in your DraftKings updater can appear here (currently a limited selection of games and markets). Missing lines are not invented. No betting probability or expected value is claimed.</div><p><button id="reload">Refresh data</button> <a href="./sports-edge-nfl-dashboard-autoload.html">Open individual player projections</a></p></section>
+<section class="panel"><h2>Find projection differences</h2><div class="controls"><div><label for="market">MARKET</label><select id="market"><option value="all">All available markets</option><option value="player_pass_yds">Passing yards</option><option value="player_rush_yds">Rushing yards</option><option value="player_reception_yds">Receiving yards</option><option value="player_receptions">Receptions</option><option value="player_pass_tds">Passing touchdowns</option><option value="player_pass_completions">Completions</option></select></div><div><label for="direction">MODEL LEAN</label><select id="direction"><option value="all">Over and under</option><option value="over">Over only</option><option value="under">Under only</option></select></div><div><label for="minGap">MINIMUM GAP (%)</label><select id="minGap"><option value="0">Show all</option><option value="5">5%+</option><option value="10">10%+</option><option value="20">20%+</option></select></div><div><label for="search">SEARCH PLAYER / TEAM</label><input id="search" placeholder="e.g. Drake Maye"></div></div><p class="muted foot">Gap % = (projection − line) ÷ line × 100. The percentage is only for comparing differences within each market. Larger differences can reflect data limitations, not better bets.</p></section>
+<section class="panel"><div class="stats"><div class="stat"><span>AVAILABLE PROP LINES</span><b id="available">—</b></div><div class="stat"><span>MATCHED TO STATS</span><b id="matched">—</b></div><div class="stat"><span>DISPLAYED</span><b id="shown">—</b></div><div class="stat"><span>LARGEST DISPLAYED GAP</span><b id="biggest">—</b></div></div><p id="summary" class="muted"></p><div class="scroll"><table><thead><tr><th>Player / position</th><th>Game</th><th>Market</th><th>DraftKings line</th><th>Sports Edge</th><th>Gap</th><th>Model lean</th><th>DK odds</th><th>Model</th></tr></thead><tbody id="rows"><tr><td colspan="9">Loading…</td></tr></tbody></table></div></section>
+<p class="foot muted">Projections use completed regular-season games from the latest loaded season for each player, with a minimum of 4 games. WR receiving yards use the season-average model; other supported markets use the experimental blended position model when possible. This scanner does not currently apply the individual dashboard's defensive matchup adjustment. Games already started are excluded. Verify injuries, starting roles, lines, and kickoff times before drawing conclusions.</p>
+</main><script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let data=[],odds=null,ranked=[],allProps=0;
+function csvRows(s){let out=[],row=[],v='',quoted=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(quoted&&s[i+1]==='"'){v+='"';i++}else quoted=!quoted}else if(c===','&&!quoted){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x!==''))out.push(row);row=[];v=''}else v+=c}if(v||row.length){row.push(v);out.push(row)}return out}
+function pname(r){return r.player_display_name||r.player_name||''}
+function meanOf(arr){return arr.reduce((a,b)=>a+b,0)/arr.length}
+function smoothMetric(rows,key){
+ const vals=rows.map(r=>Number(r[key])).filter(Number.isFinite);
+ if(!vals.length)return null;
+ const all=meanOf(vals),last=meanOf(vals.slice(-4));
+ return .7*all+.3*last;
+}
+function positionForecast(rows,stat){
+ const pos=String(rows[rows.length-1]?.position||'').toUpperCase();
+ let volume,output,description;
+ const rate=(numerator,denominator)=>{
+   const n=rows.reduce((s,r)=>s+(Number(r[numerator])||0),0);
+   const d=rows.reduce((s,r)=>s+(Number(r[denominator])||0),0);
+   return d>0?n/d:null;
+ };
+ if(pos==='QB' && ['passing_yards','passing_tds','completions'].includes(stat)){
+   volume=smoothMetric(rows,'attempts');
+   const efficiency=stat==='passing_yards'?rate('passing_yards','attempts'):stat==='passing_tds'?rate('passing_tds','attempts'):rate('completions','attempts');
+   output=volume*efficiency;description='Expected pass attempts × historical '+(stat==='passing_yards'?'yards per attempt':stat==='passing_tds'?'TDs per attempt':'completion rate');
+ }else if(pos==='RB' && ['rushing_yards','rushing_tds'].includes(stat)){
+   volume=smoothMetric(rows,'carries');
+   const efficiency=rate(stat,'carries');output=volume*efficiency;
+   description='Expected carries × historical '+(stat==='rushing_yards'?'yards per carry':'rushing TDs per carry');
+ }else if(['WR','TE','RB'].includes(pos) && ['receiving_yards','receptions','receiving_tds'].includes(stat)){
+   volume=smoothMetric(rows,'targets');
+   const efficiency=rate(stat,'targets');output=volume*efficiency;
+   description='Expected targets × historical '+(stat==='receiving_yards'?'yards per target':stat==='receptions'?'catch rate':'receiving TDs per target');
+ }else if(stat==='rushing_yards' && pos==='QB'){
+   volume=smoothMetric(rows,'carries');const efficiency=rate('rushing_yards','carries');output=volume*efficiency;
+   description='Expected QB carries × historical yards per carry';
+ }else return null;
+ if(!Number.isFinite(volume)||volume<=0||!Number.isFinite(output)||output<0)return null;
+ return {value:output,volume,description,pos};
+}
+const MARKETS={player_pass_yds:['passing_yards','Passing yards'],player_rush_yds:['rushing_yards','Rushing yards'],player_reception_yds:['receiving_yards','Receiving yards'],player_receptions:['receptions','Receptions'],player_pass_tds:['passing_tds','Passing TDs'],player_pass_completions:['completions','Completions']};
+function teamKey(t){const map={'New England Patriots':'NE','Chicago Bears':'CHI','Buffalo Bills':'BUF','Miami Dolphins':'MIA','New York Jets':'NYJ','Baltimore Ravens':'BAL','Cincinnati Bengals':'CIN','Cleveland Browns':'CLE','Pittsburgh Steelers':'PIT','Houston Texans':'HOU','Indianapolis Colts':'IND','Jacksonville Jaguars':'JAX','Tennessee Titans':'TEN','Denver Broncos':'DEN','Kansas City Chiefs':'KC','Las Vegas Raiders':'LV','Los Angeles Chargers':'LAC','Dallas Cowboys':'DAL','New York Giants':'NYG','Philadelphia Eagles':'PHI','Washington Commanders':'WAS','Arizona Cardinals':'ARI','Los Angeles Rams':'LA','San Francisco 49ers':'SF','Seattle Seahawks':'SEA','Carolina Panthers':'CAR','Atlanta Falcons':'ATL','New Orleans Saints':'NO','Tampa Bay Buccaneers':'TB','Detroit Lions':'DET','Green Bay Packers':'GB','Minnesota Vikings':'MIN','Chicago Bears':'CHI'};return map[t]||t}
+function fmtOdds(v){return Number.isFinite(Number(v))?(Number(v)>0?'+':'')+Number(v):'—'}
+function forecast(player,stat,game){
+ const norm=player.toLowerCase().replace(/[^a-z0-9]/g,'');
+ let r=data.filter(x=>pname(x).toLowerCase().replace(/[^a-z0-9]/g,'')===norm&&x.season_type!=='POST'&&x[stat]!==''&&Number.isFinite(Number(x[stat])));
+ if(!r.length)return null;
+ // Require that the player's latest recorded team belongs to this matchup to avoid wrong-name joins.
+ r.sort((a,b)=>Number(a.season)-Number(b.season)||Number(a.week)-Number(b.week));
+ const season=r[r.length-1].season;r=r.filter(x=>x.season===season);
+ const recentTeam=r[r.length-1].recent_team||r[r.length-1].team;
+ const teams=[teamKey(game.home_team),teamKey(game.away_team)];
+ if(recentTeam&&!teams.includes(recentTeam))return null;
+ if(r.length<4)return null;
+ const v=r.map(x=>Number(x[stat]));const avg=meanOf(v),l5=meanOf(v.slice(-5)),l3=meanOf(v.slice(-3));
+ const w=Math.min(1,r.length/6);const history=avg*(1-w)+(.45*avg+.35*l5+.2*l3)*w;
+ const comp=positionForecast(r,stat);const pos=String(r[r.length-1].position||'').toUpperCase();
+ const seasonOnly=pos==='WR'&&stat==='receiving_yards';const weight=comp?Math.min(.45,r.length/8*.45):0;
+ const pred=seasonOnly?avg:history*(1-weight)+(comp?.value||0)*weight;
+ if(!Number.isFinite(pred)||pred<0)return null;
+ return {projection:pred,position:pos,model:seasonOnly?'Season average':comp?'Position-specific':'Historical blend',games:r.length,season};
+}
+function extractProps(){
+ const list=[];let count=0;const now=Date.now();
+ for(const game of odds.player_props||[]){
+  if(game.commence_time&&new Date(game.commence_time).getTime()<=now)continue;
+  const book=(game.bookmakers||[]).find(b=>b.key==='draftkings');if(!book)continue;
+  for(const market of book.markets||[]){const spec=MARKETS[market.key];if(!spec)continue;
+   const grouped=new Map();
+   for(const o of market.outcomes||[]){const side=String(o.name||'').toLowerCase();if(!['over','under'].includes(side)||!o.description||!Number.isFinite(Number(o.point)))continue;
+    const key=o.description.toLowerCase()+'|'+Number(o.point);if(!grouped.has(key))grouped.set(key,{name:o.description,line:Number(o.point),over:null,under:null});grouped.get(key)[side]=o.price;
+   }
+   for(const p of grouped.values()){
+    count++;
+    const f=forecast(p.name,spec[0],game);if(!f)continue;
+    const gap=f.projection-p.line;const pct=p.line>0?100*gap/p.line:null;
+    list.push({...p,...f,gap,pct,market:market.key,label:spec[1],game,lean:gap>0?'Over':gap<0?'Under':'Even'});
+   }
+  }
+ }
+ allProps=count;ranked=list.sort((a,b)=>Math.abs(b.pct??b.gap)-Math.abs(a.pct??a.gap));render();
+}
+function render(){const market=$('market').value,dir=$('direction').value,min=Number($('minGap').value),search=$('search').value.trim().toLowerCase();
+ const rows=ranked.filter(x=>(market==='all'||x.market===market)&&(dir==='all'||x.lean.toLowerCase()===dir)&&(x.pct===null||Math.abs(x.pct)>=min)&&(!search||(x.name+' '+x.game.home_team+' '+x.game.away_team).toLowerCase().includes(search)));
+ $('available').textContent=allProps.toLocaleString();$('matched').textContent=ranked.length.toLocaleString();$('shown').textContent=rows.length.toLocaleString();$('biggest').textContent=rows.length?(rows[0].pct===null?'—':Math.abs(rows[0].pct).toFixed(1)+'%'):'—';
+ $('summary').textContent=allProps?`${ranked.length} of ${allProps} saved DraftKings prop lines matched a player with 4+ completed games in the latest season and a compatible matchup.`:'No upcoming supported DraftKings player props were found in the saved snapshot. Your updater may need a refresh or wider player-prop coverage.';
+ $('rows').innerHTML=rows.length?rows.map(x=>{
+ const kickoff=x.game.commence_time?new Date(x.game.commence_time).toLocaleString('en-US',{timeZone:'America/New_York',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Unknown';
+ const odds=`O ${fmtOdds(x.over)} / U ${fmtOdds(x.under)}`;
+ return `<tr><td><b>${esc(x.name)}</b><small>${esc(x.position)} · ${esc(x.season)} · ${x.games} games</small></td><td>${esc(teamKey(x.game.away_team))} @ ${esc(teamKey(x.game.home_team))}<small>${esc(kickoff)} ET</small></td><td>${esc(x.label)}</td><td>${x.line.toFixed(1)}</td><td><b>${x.projection.toFixed(1)}</b></td><td class="${x.gap>=0?'positive':'negative'}">${x.gap>0?'+':''}${x.gap.toFixed(1)}<small>${x.pct===null?'—':(x.pct>0?'+':'')+x.pct.toFixed(1)+'%'}</small></td><td><span class="pill">${esc(x.lean)}</span></td><td>${esc(odds)}</td><td>${esc(x.model)}</td></tr>`;
+ }).join(''):'<tr><td colspan="9">No matching upcoming props. Try All markets / Show all, or rerun your DraftKings GitHub Actions updater.</td></tr>';
+}
+async function load(){
+ $('reload').disabled=true;$('status').textContent='Loading NFL stats and DraftKings odds…';
+ try{
+  const stamp=Date.now();
+  const fetchCsv=async year=>{const urls=year===2026?['./data/nfl-2026.csv']:['./data/nfl-'+year+'.csv','https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_'+year+'.csv'];for(const url of urls){try{const res=await fetch(url+'?refresh='+stamp,{cache:'no-store'});if(!res.ok)continue;const text=await res.text();if(text.trimStart().startsWith('<'))continue;const lines=csvRows(text);const headers=lines.shift()?.map(x=>x.trim().replace(/^\uFEFF/,''))||[];if(!headers.includes('passing_yards')||!headers.includes('week'))continue;return {year,rows:lines.map(c=>Object.fromEntries(headers.map((h,i)=>[h,c[i]??'']))).filter(x=>pname(x))}}catch(e){}}return {year,rows:[]}};
+  const [a,b,c,o]=await Promise.all([fetchCsv(2024),fetchCsv(2025),fetchCsv(2026),fetch('./draftkings-odds.json?refresh='+stamp,{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Odds file HTTP '+r.status);return r.json()})]);
+  if(o.bookmaker!=='draftkings'||!Array.isArray(o.games))throw Error('DraftKings odds file has an unexpected format');odds=o;
+  const seen=new Set();data=[];for(const item of [a,b,c])for(const r of item.rows){const id=[r.season||item.year,r.week,r.player_id||pname(r),r.recent_team||r.team,r.season_type].join('|');if(seen.has(id))continue;seen.add(id);data.push(r)}
+  if(!data.length)throw Error('No NFL player statistics could be loaded');
+  $('status').textContent=`Loaded ${data.length.toLocaleString()} player-game rows from ${[a,b,c].filter(x=>x.rows.length).map(x=>x.year).join(', ')}; saved DraftKings file loaded.`;
+  const time=new Date(o.fetched_at);$('freshness').textContent='DraftKings snapshot last updated: '+(Number.isNaN(time.getTime())?'unknown':time.toLocaleString('en-US',{timeZone:'America/New_York',dateStyle:'medium',timeStyle:'short'})+' ET')+'. Prices may have changed.';
+  extractProps();
+ }catch(e){$('status').textContent='Unable to load scanner: '+e.message;$('rows').innerHTML='<tr><td colspan="9">Check the GitHub data files and reload.</td></tr>'}
+ finally{$('reload').disabled=false}
+}
+for(const id of ['market','direction','minGap','search'])$(id).addEventListener(id==='search'?'input':'change',render);
+$('reload').addEventListener('click',load);load();
+</script></body></html>
