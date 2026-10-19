@@ -1,0 +1,29 @@
+name: Update NFL stats
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 12 * * *'
+permissions:
+  contents: write
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download 2026 weekly player stats
+        run: |
+          mkdir -p data
+          curl --fail --location --retry 3 --silent --show-error \
+            'https://github.com/nflverse/nflverse-data/releases/download/stats_player/stats_player_week_2026.csv' \
+            --output data/nfl-2026.csv
+          test $(wc -c < data/nfl-2026.csv) -gt 10000
+          head -n 1 data/nfl-2026.csv | grep -q 'passing_yards'
+      - name: Save changes to repository
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/nfl-2026.csv
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update NFL weekly stats'
+            git push
+          fi
