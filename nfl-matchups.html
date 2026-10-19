@@ -1,0 +1,109 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sports Edge — NFL Auto Matchups</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{font:16px system-ui;background:#0b1220;color:#eaf1ff;margin:0}main{max-width:940px;margin:auto;padding:22px}header{display:flex;justify-content:space-between;align-items:center;gap:10px}a{color:#65dfae}.card{background:#142137;border:1px solid #30445f;border-radius:16px;padding:20px;margin:16px 0}h1{margin-bottom:0}p,.muted{color:#adbed5}label{display:block;font-size:12px;margin:14px 0 5px;color:#b9c9dc}input,select,button{font:inherit;padding:11px;border-radius:9px}input,select{width:100%;background:#0b1628;color:white;border:1px solid #425675}button{background:#5de0a0;border:0;color:#071923;font-weight:750;cursor:pointer;margin-top:16px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{background:#0d192a;padding:14px;border-radius:12px}.stat b{display:block;font-size:26px}.stat span{font-size:12px;color:#afc0d7}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:440px}td,th{padding:9px;border-bottom:1px solid #34435a;text-align:left}#status{color:#f6d28e}small{color:#b3c4d9}@media(max-width:560px){.stats{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}</style></head><body><main><header><strong>🏈 SPORTS EDGE / NFL</strong><a href="./index.html">← Main dashboard</a></header><h1>NFL Player Projection Lab</h1><p>Historical player game logs and an explainable baseline. No live odds or guaranteed picks.</p><section class="card"><h2>Load historical data</h2><p>The latest saved weekly stats load automatically when available. You can also upload a weekly player-stats CSV downloaded from the public <a href="https://github.com/nflverse/nflverse-data/releases/tag/stats_player" target="_blank" rel="noopener">nflverse player_stats releases</a>. Choose a season CSV if available. Data stays in your browser; no API key is required.</p><label for="csv">CSV FILE</label><input id="csv" type="file" accept=".csv,text/csv"><p id="status">Checking for automatically updated NFL stats…</p><button id="reload" type="button">Refresh saved stats</button></section><section class="card"><h2>Player projection</h2><div class="grid"><div><label for="player">PLAYER</label><input id="player" list="names" placeholder="Select a player"><datalist id="names"></datalist></div><div><label for="stat">STAT</label><select id="stat"><option value="passing_yards">Passing yards</option><option value="passing_tds">Passing TDs</option><option value="rushing_yards">Rushing yards</option><option value="receiving_yards">Receiving yards</option><option value="receptions">Receptions</option><option value="targets">Targets</option><option value="carries">Carries</option><option value="completions">Completions</option></select></div><div><label for="season">SEASON</label><select id="season"><option value="">All available</option></select></div><div><label for="line">LINE (ENTER MANUALLY)</label><input id="line" type="number" step="0.5" placeholder="e.g. 64.5"></div></div><div class="grid"><div><label for="opponent">NEXT OPPONENT (AUTO-SELECTED WHEN AVAILABLE)</label><select id="opponent"><option value="">No opponent adjustment</option></select></div><div><label for="strength">MATCHUP ADJUSTMENT STRENGTH</label><select id="strength"><option value="0">Off (baseline only)</option><option value="0.25" selected>Conservative (25%)</option><option value="0.5">Moderate (50%)</option></select></div></div><p id="scheduleStatus" class="muted" aria-live="polite">Checking upcoming NFL schedule…</p><button id="calculate">Calculate projection</button><p><small>Baseline = 60% season average + 40% last-five-game average. Matchup factor compares the selected defense’s per-game allowed stat against the league average for the same season. Only part of that factor is applied, with a cap of ±15%. This is an experimental heuristic, not a calibrated probability. Injuries, weather and expected playing time are not modeled.</small></p><div id="matchup" class="card" aria-live="polite"><h3>Opponent matchup breakdown</h3><p>Select an opponent and calculate to see the matchup adjustment.</p></div><div class="stats"><div class="stat"><span>PROJECTION</span><b id="projection">—</b></div><div class="stat"><span>DIFFERENCE VS LINE</span><b id="difference">—</b></div><div class="stat"><span>MODEL LEAN</span><b id="lean">—</b></div></div></section><section class="card"><h2>Recent games</h2><div class="scroll"><table><thead><tr><th>Season</th><th>Week</th><th>Team</th><th>Opponent</th><th>Stat</th></tr></thead><tbody id="games"><tr><td colspan="5">Load a CSV and calculate.</td></tr></tbody></table></div></section><p class="muted"><small>Sports Edge research prototype. Historical stats do not imply future results. Verify line, player availability, and source freshness independently.</small></p></main><script>
+const $=x=>document.getElementById(x);let data=[];let schedule=[];let manualOpponent=false;const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+function csvRows(s){let out=[],row=[],v='',quoted=false;for(let i=0;i<s.length;i++){let c=s[i];if(c==='"'){if(quoted&&s[i+1]==='"'){v+='"';i++}else quoted=!quoted}else if(c===','&&!quoted){row.push(v);v=''}else if((c==='\n'||c==='\r')&&!quoted){if(c==='\r'&&s[i+1]==='\n')i++;row.push(v);if(row.some(x=>x!==''))out.push(row);row=[];v=''}else v+=c}if(v||row.length){row.push(v);out.push(row)}return out}
+function pname(r){return r.player_display_name||r.player_name||''}
+async function loadCSVText(content,source){
+ let rows=csvRows(content);if(!rows.length)throw Error('CSV is empty');
+ let headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));
+ let parsed=rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))).filter(r=>pname(r));
+ if(!parsed.length||!headers.includes('week')||!headers.includes('passing_yards'))throw Error('Not a weekly nflverse player stats CSV');
+ data=parsed;
+ let names=[...new Set(data.map(pname))].sort();
+ $('names').innerHTML=names.map(x=>'<option value="'+esc(x)+'"></option>').join('');
+ let seasons=[...new Set(data.map(r=>r.season).filter(Boolean))].sort().reverse();
+ $('season').innerHTML='<option value="">All available</option>'+seasons.map(x=>'<option>'+esc(x)+'</option>').join('');
+ let teams=[...new Set(data.map(r=>r.opponent_team).filter(Boolean))].sort();
+ $('opponent').innerHTML='<option value="">No opponent adjustment</option>'+teams.map(t=>'<option value="'+esc(t)+'">'+esc(t)+'</option>').join('');
+ $('status').textContent='Loaded '+data.length.toLocaleString()+' weekly rows for '+names.length+' players ('+source+').';manualOpponent=false;chooseNextOpponent();
+}
+$('csv').addEventListener('change',async e=>{
+ const f=e.target.files[0];if(!f)return;
+ $('status').textContent='Reading your CSV…';
+ try{if(f.size>30000000)throw Error('File over 30 MB; use a single-season CSV.');await loadCSVText(await f.text(),'manual upload')}
+ catch(err){$('status').textContent='Could not read CSV: '+err.message}
+});
+async function loadAutomatic(){
+ $('status').textContent='Checking for automatically updated NFL stats…';
+ try{
+  const response=await fetch('./data/nfl-2026.csv?refresh='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw Error('saved stats file is not available yet (HTTP '+response.status+')');
+  await loadCSVText(await response.text(),'automatic GitHub update');
+ }catch(err){$('status').textContent='Automatic stats unavailable: '+err.message+'. Upload your CSV above, or set up the GitHub update workflow.'}
+}
+$('reload').addEventListener('click',()=>{loadAutomatic();loadSchedule()});
+loadAutomatic();
+async function loadSchedule(){
+ try{
+  const response=await fetch('./data/nfl-schedule.csv?refresh='+Date.now(),{cache:'no-store'});
+  if(!response.ok)throw Error('schedule file not published yet');
+  const rows=csvRows(await response.text());const headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));
+  if(!['season','game_type','gameday','home_team','away_team'].every(x=>headers.includes(x)))throw Error('unexpected schedule format');
+  schedule=rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??'']))).filter(r=>r.game_type==='REG');
+  chooseNextOpponent();
+ }catch(err){$('scheduleStatus').textContent='Automatic opponent unavailable ('+err.message+'). Select an opponent manually.'}
+}
+function chooseNextOpponent(){
+ if(manualOpponent)return;
+ const name=$('player').value.trim().toLowerCase();
+ if(!name){$('scheduleStatus').textContent=schedule.length?'Choose a player to identify the next opponent.':'Waiting for NFL schedule data…';return}
+ const rows=data.filter(r=>pname(r).toLowerCase()===name&&r.season_type!=='POST').sort((a,b)=>Number(b.season)-Number(a.season)||Number(b.week)-Number(a.week));
+ if(!rows.length){$('scheduleStatus').textContent='Player not found in loaded stats.';return}
+ const team=rows[0].recent_team||rows[0].team;
+ if(!team){$('scheduleStatus').textContent='No team listed for this player; choose the opponent manually.';return}
+ const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ const games=schedule.filter(g=>g.season===rows[0].season&&g.gameday>=today&&(g.home_team===team||g.away_team===team)).sort((a,b)=>a.gameday.localeCompare(b.gameday)||Number(a.week)-Number(b.week));
+ if(!games.length){$('scheduleStatus').textContent=schedule.length?'No remaining scheduled regular-season game found for '+team+'. Select manually.':'Schedule not loaded yet; opponent selection is manual.';return}
+ const game=games[0];const opp=game.home_team===team?game.away_team:game.home_team;
+ if(![...$('opponent').options].some(o=>o.value===opp)){$('scheduleStatus').textContent='Upcoming opponent '+opp+' is missing from stats; select manually.';return}
+ $('opponent').value=opp;
+ $('scheduleStatus').textContent='Auto matchup: '+team+' vs '+opp+' · '+game.gameday+' · Week '+game.week+(game.gameday===today?' (game-day status not verified)':'')+'. You can override the defense manually.';
+}
+$('player').addEventListener('change',()=>{manualOpponent=false;chooseNextOpponent()});
+$('player').addEventListener('blur',()=>{if(!manualOpponent)chooseNextOpponent()});
+$('season').addEventListener('change',()=>{manualOpponent=false;chooseNextOpponent()});
+$('opponent').addEventListener('change',()=>{manualOpponent=true;$('scheduleStatus').textContent='Manual opponent selection: '+($('opponent').value||'none')+'. Change player to auto-select again.'});
+loadSchedule();
+// Aggregate each defense's allowed stat by week. QB passing and receiving/rushing
+// production are summed across opponents, not averaged across individual players.
+function defensiveGames(stat,season){
+ const grouped=new Map();
+ for(const r of data){
+  if(r.season!==season||r.season_type==='POST'||!r.opponent_team||!(r.recent_team||r.team)||r[stat]===''||!Number.isFinite(Number(r[stat])))continue;
+  const key=[r.season,r.week,r.opponent_team,(r.recent_team||r.team)].join('|');
+  if(!grouped.has(key))grouped.set(key,{def:r.opponent_team,week:Number(r.week),value:0,contributors:0});
+  const g=grouped.get(key);g.value+=Number(r[stat]);g.contributors++;
+ }
+ return [...grouped.values()];
+}
+$('calculate').addEventListener('click',()=>{
+ let player=$('player').value.trim().toLowerCase(),season=$('season').value,stat=$('stat').value;
+ let r=data.filter(x=>pname(x).toLowerCase()===player&&(!season||x.season===season)&&x.season_type!=='POST'&&x[stat]!==''&&Number.isFinite(Number(x[stat]))).sort((a,b)=>Number(a.season)-Number(b.season)||Number(a.week)-Number(b.week));
+ if(!r.length){$('status').textContent='No matching player games. Check the player name, season, and loaded file.';return}
+ // When all seasons selected, use only the most recent available season.
+ const latestSeason=r[r.length-1].season;r=r.filter(x=>x.season===latestSeason);
+ let values=r.map(x=>Number(x[stat]));let seasonAvg=values.reduce((a,b)=>a+b,0)/values.length;
+ let recent=values.slice(-5),recentAvg=recent.reduce((a,b)=>a+b,0)/recent.length;
+ let baseline=.6*seasonAvg+.4*recentAvg,projection=baseline;
+ const opp=$('opponent').value,strength=Number($('strength').value),box=$('matchup');
+ if(opp){
+  const all=defensiveGames(stat,latestSeason);
+  const defensive=all.filter(x=>x.def===opp);
+  // League comparison uses defense-game totals, not individual player rows.
+  if(defensive.length>=3&&all.length){
+   const mean=a=>a.reduce((s,x)=>s+x.value,0)/a.length;
+   const allowed=mean(defensive),league=mean(all);
+   if(league>0){
+    const ratio=allowed/league,adjust=Math.max(-.15,Math.min(.15,(ratio-1)*strength));
+    projection=baseline*(1+adjust);
+    box.innerHTML='<h3>Opponent matchup breakdown</h3><p>Defense: <b>'+esc(opp)+'</b> · Season: '+esc(latestSeason)+'</p><p>Allowed per game: <b>'+allowed.toFixed(1)+'</b> · League defense-game average: <b>'+league.toFixed(1)+'</b> · Sample: <b>'+defensive.length+' games</b></p><p>Baseline: <b>'+baseline.toFixed(1)+'</b> · Experimental adjustment: <b>'+(adjust>=0?'+':'')+(adjust*100).toFixed(1)+'%</b> · Adjusted: <b>'+projection.toFixed(1)+'</b></p><small>All opposing players at the selected position/stat are combined by game. This is a rough matchup proxy, not a position-specific or opponent-quality-adjusted forecast. Upcoming opponent is inferred from the published schedule when available; verify player team and game status.</small>';
+   }else box.innerHTML='<h3>Opponent matchup breakdown</h3><p>Insufficient league comparison data; baseline unchanged.</p>';
+  }else box.innerHTML='<h3>Opponent matchup breakdown</h3><p>Only '+defensive.length+' usable games for '+esc(opp)+'. Need at least 3; baseline unchanged.</p>';
+ }else box.innerHTML='<h3>Opponent matchup breakdown</h3><p>No opponent selected; baseline unchanged.</p>';
+ let line=$('line').value.trim();let d=line===''?null:projection-Number(line);
+ $('projection').textContent=projection.toFixed(1);$('difference').textContent=d===null?'—':(d>=0?'+':'')+d.toFixed(1);
+ $('lean').textContent=d===null?'Enter line':Math.abs(d)<.05?'At line':d>0?'Over':'Under';
+ $('games').innerHTML=r.slice(-10).reverse().map(x=>'<tr><td>'+esc(x.season)+'</td><td>'+esc(x.week)+'</td><td>'+esc(x.recent_team||x.team)+'</td><td>'+esc(x.opponent_team||x.opponent)+'</td><td>'+Number(x[stat]).toFixed(1)+'</td></tr>').join('');
+ $('status').textContent='Projection calculated from '+r.length+' available games. Historical matchup adjustment is experimental.';
+});
+
+</script></body></html>
