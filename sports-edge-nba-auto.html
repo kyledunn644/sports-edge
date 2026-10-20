@@ -14,8 +14,59 @@ async function autoStats(){try{const r=await fetch('./data/nba-game-logs.csv',{c
 const marketKeys={points:'player_points',rebounds:'player_rebounds',assists:'player_assists',threes:'player_threes',pra:'player_points_rebounds_assists'};
 function normalizeName(s){return String(s||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')}
 function findOdds(){if(!nbaOdds)return null;const player=normalizeName($('player').value.trim()),market=marketKeys[$('market').value];if(!player||!market)return null;const entries=Array.isArray(nbaOdds.player_props)?nbaOdds.player_props:[];for(const event of entries){for(const book of event.bookmakers||[]){if(book.key!=='draftkings')continue;for(const m of book.markets||[]){if(m.key!==market)continue;const matches=(m.outcomes||[]).filter(o=>normalizeName(o.description||o.player)===player&&['over','under'].includes(String(o.name).toLowerCase()));const over=matches.find(o=>String(o.name).toLowerCase()==='over');const under=matches.find(o=>String(o.name).toLowerCase()==='under');if(over||under)return {over,under,event,market:m};}}}return null}
-function fmtPrice(price){return Number.isFinite(Number(price))?(Number(price)>0?'+':'')+Number(price):'—'}
-function refreshOdds(){const match=findOdds();const old=$('line').value;const canReplace=old===''||old===lastAutoLine;const point=match?.over?.point??match?.under?.point;if(match&&Number.isFinite(Number(point))){if(canReplace){$('line').value=String(point);lastAutoLine=String(point)}$('lineSource').textContent=canReplace?'DraftKings line loaded automatically. You can edit it.':'Manual line retained; DraftKings line: '+point;const t=match.event.commence_time?new Date(match.event.commence_time).toLocaleString():'';$('oddsDetails').textContent='DraftKings '+$('market').selectedOptions[0].text+' · Line '+point+' · Over '+fmtPrice(match.over?.price)+' · Under '+fmtPrice(match.under?.price)+(t?' · Game: '+t:'');}else{if(old===lastAutoLine){$('line').value='';lastAutoLine=null}$('lineSource').textContent='No matching DraftKings line available for this player and market; enter one manually.';$('oddsDetails').textContent='';}}
+
+function autoOpponent(match) {
+  if (!match) return;
+
+  const event = match.event;
+  const home = event.home_team;
+  const away = event.away_team;
+
+  if (!home || !away) return;
+
+  const player = normalizeName($('player').value.trim());
+  const playerGames = games.filter(
+    g => normalizeName(g.player) === player
+  );
+
+  if (!playerGames.length) return;
+
+  playerGames.sort((a, b) => b.date.localeCompare(a.date));
+
+  const team = String(playerGames[0].team || '')
+    .trim()
+    .toLowerCase();
+
+  if (!team) return;
+
+  const abbreviations = {
+    ATL:'atlanta hawks', BOS:'boston celtics',
+    BKN:'brooklyn nets', CHA:'charlotte hornets',
+    CHI:'chicago bulls', CLE:'cleveland cavaliers',
+    DAL:'dallas mavericks', DEN:'denver nuggets',
+    DET:'detroit pistons', GSW:'golden state warriors',
+    HOU:'houston rockets', IND:'indiana pacers',
+    LAC:'los angeles clippers', LAL:'los angeles lakers',
+    MEM:'memphis grizzlies', MIA:'miami heat',
+    MIL:'milwaukee bucks', MIN:'minnesota timberwolves',
+    NOP:'new orleans pelicans', NYK:'new york knicks',
+    OKC:'oklahoma city thunder', ORL:'orlando magic',
+    PHI:'philadelphia 76ers', PHX:'phoenix suns',
+    POR:'portland trail blazers', SAC:'sacramento kings',
+    SAS:'san antonio spurs', TOR:'toronto raptors',
+    UTA:'utah jazz', WAS:'washington wizards'
+  };
+
+  const fullTeam = abbreviations[team.toUpperCase()] || team;
+
+  if (fullTeam === home.toLowerCase()) {
+    $('opponent').value = away;
+  } else if (fullTeam === away.toLowerCase()) {
+    $('opponent').value = home;
+  }
+}
+  function fmtPrice(price){return Number.isFinite(Number(price))?(Number(price)>0?'+':'')+Number(price):'—'}
+function refreshOdds(){const match=findOdds();autoOpponent(match);const old=$('line').value;const canReplace=old===''||old===lastAutoLine;const point=match?.over?.point??match?.under?.point;if(match&&Number.isFinite(Number(point))){if(canReplace){$('line').value=String(point);lastAutoLine=String(point)}$('lineSource').textContent=canReplace?'DraftKings line loaded automatically. You can edit it.':'Manual line retained; DraftKings line: '+point;const t=match.event.commence_time?new Date(match.event.commence_time).toLocaleString():'';$('oddsDetails').textContent='DraftKings '+$('market').selectedOptions[0].text+' · Line '+point+' · Over '+fmtPrice(match.over?.price)+' · Under '+fmtPrice(match.under?.price)+(t?' · Game: '+t:'');}else{if(old===lastAutoLine){$('line').value='';lastAutoLine=null}$('lineSource').textContent='No matching DraftKings line available for this player and market; enter one manually.';$('oddsDetails').textContent='';}}
 $('player').addEventListener('change',refreshOdds);$('market').addEventListener('change',refreshOdds);
 $('line').addEventListener('input',()=>{if($('line').value!==lastAutoLine)lastAutoLine=null});
 async function autoOdds(){try{const r=await fetch('./nba-draftkings-odds.json',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);nbaOdds=await r.json();const entries=Array.isArray(nbaOdds.player_props)?nbaOdds.player_props:[];const n=entries.reduce((sum,e)=>sum+(e.bookmakers||[]).reduce((a,b)=>a+(b.markets||[]).reduce((c,m)=>c+(m.outcomes||[]).length,0),0),0);$('oddsStatus').textContent='DraftKings NBA odds loaded · '+n+' market outcomes · Updated '+(nbaOdds.fetched_at?new Date(nbaOdds.fetched_at).toLocaleString():'unknown')+'. Limited to games fetched by the odds workflow.';refreshOdds()}catch(e){$('oddsStatus').textContent='DraftKings NBA odds unavailable ('+e.message+'). Manual line entry still works.'}}
