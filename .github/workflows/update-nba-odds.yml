@@ -52,7 +52,7 @@ jobs:
 
           props = []
           errors = []
-          for game in games[:2]:
+          for game in games:
               for market in markets:
                   try:
                       result = get(
