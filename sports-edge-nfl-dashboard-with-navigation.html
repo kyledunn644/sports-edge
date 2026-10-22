@@ -218,4 +218,5 @@ $('clearPicks').addEventListener('click',()=>{if(confirm('Permanently clear this
 $('exportPicks').addEventListener('click',()=>{const a=getPicks();if(!a.length){$('logStatus').textContent='No saved predictions to export.';return}const fields=['savedAt','player','position','stat','season','opponent','model','projection','line','savedOddsAt','actual'];const csv=[fields.join(','),...a.map(p=>fields.map(k=>'"'+String(p[k]??'').replaceAll('"','""')+'"').join(','))].join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='sports-edge-prediction-log.csv';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000)});
 renderPicks();
 loadOdds();
+document.querySelector('header nav')?.insertAdjacentHTML('beforeend', '<a href="./sports-edge-2-nba-scanner-minutes-fixed.html">🏀 NBA Scanner</a>');
 </script></body></html>
